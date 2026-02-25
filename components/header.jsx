@@ -6,6 +6,7 @@ import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { checkUser } from "@/lib/checkUser";
 import Image from "next/image";
 
+
 const Header = async () => {
   await checkUser();
 
@@ -14,10 +15,10 @@ const Header = async () => {
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link href="/">
           <Image
-            src={"/logo.png"}
-            alt="Welth Logo"
+            src={"/finsightpro.jpg.jpeg"}
+            alt="Finsight Logo"
             width={200}
-            height={60}
+            height={80}
             className="h-12 w-auto object-contain"
           />
         </Link>
