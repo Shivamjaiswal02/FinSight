@@ -94,19 +94,26 @@ export function AddTransactionForm({
     }
   };
 
-  const handleScanComplete = (scannedData) => {
-    if (scannedData) {
-      setValue("amount", scannedData.amount.toString());
-      setValue("date", new Date(scannedData.date));
-      if (scannedData.description) {
-        setValue("description", scannedData.description);
-      }
-      if (scannedData.category) {
-        setValue("category", scannedData.category);
-      }
-      toast.success("Receipt scanned successfully");
-    }
-  };
+const handleScanComplete = (scannedData) => {
+if (!scannedData || !scannedData.amount) {
+toast.error("Could not read receipt");
+return;
+}
+
+setValue("amount", scannedData.amount.toString());
+setValue("date", new Date(scannedData.date));
+
+if (scannedData.description) {
+setValue("description", scannedData.description);
+}
+
+if (scannedData.category) {
+setValue("category", scannedData.category);
+}
+
+toast.success("Receipt scanned successfully");
+};
+
 
   useEffect(() => {
     if (transactionResult?.success && !transactionLoading) {

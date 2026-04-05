@@ -26,11 +26,12 @@ export function ReceiptScanner({ onScanComplete }) {
   };
 
   useEffect(() => {
-    if (scannedData && !scanReceiptLoading) {
-      onScanComplete(scannedData);
-      toast.success("Receipt scanned successfully");
-    }
-  }, [scanReceiptLoading, scannedData]);
+  if (scannedData && !scanReceiptLoading) {
+    const payload = scannedData?.data || scannedData;
+    onScanComplete(payload);
+    toast.success("Receipt scanned successfully");
+  }
+}, [scanReceiptLoading, scannedData]);
 
   return (
     <div className="flex items-center gap-4">
