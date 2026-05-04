@@ -230,26 +230,108 @@ export async function getUserTransactions(query = {}) {
   }
 }
 
+// // ==========================
+// // SCAN RECEIPT (GEMINI OCR)
+// // ==========================
+// export async function scanReceipt(file) {
+//   try {
+//     const model = genAI.getGenerativeModel({
+//       model: "gemini-1.5-flash",
+//     });
+
+//     const arrayBuffer = await file.arrayBuffer();
+//     const base64String = Buffer.from(arrayBuffer).toString("base64");
+
+//     const prompt = `
+// Extract receipt data.
+// Return JSON:
+// {
+//  "amount": number,
+//  "date": "YYYY-MM-DD",
+//  "merchantName": "string",
+//  "category": "food|shopping|travel|other"
+// }
+// `;
+
+//     const result = await model.generateContent({
+//       contents: [
+//         {
+//           role: "user",
+//           parts: [
+//             { text: prompt },
+//             {
+//               inlineData: {
+//                 mimeType: file.type,
+//                 data: base64String,
+//               },
+//             },
+//           ],
+//         },
+//       ],
+//     });
+
+//     const text =
+//       result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+
+//     const data = JSON.parse(text.replace(/```json|```/g, "").trim());
+
+//     if (!data?.amount) return {};
+
+//     return {
+//       amount: Number(data.amount),
+//       date: new Date(data.date),
+//       description: data.merchantName || "",
+//       merchantName: data.merchantName || "",
+//       category: data.category || "other",
+//     };
+//   } catch (e) {
+//     console.log("Gemini failed → fallback");
+
+//     // 🔥 fallback so UI fills
+//     return {
+//       amount: 100,
+//       date: new Date(),
+//       description: "Scanned receipt",
+//       merchantName: "Receipt",
+//       category: "other",
+//     };
+//   }
+// }
+
 // ==========================
 // SCAN RECEIPT (GEMINI OCR)
 // ==========================
 export async function scanReceipt(file) {
   try {
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-1.5-flash", // ✅ FIXED
     });
 
     const arrayBuffer = await file.arrayBuffer();
     const base64String = Buffer.from(arrayBuffer).toString("base64");
 
     const prompt = `
-Extract receipt data.
-Return JSON:
+You are an AI receipt parser.
+
+Extract the following fields from the receipt image:
+
+- amount (number)
+- date (YYYY-MM-DD)
+- merchantName (string)
+- category (food, shopping, travel, other)
+
+Return ONLY valid JSON. No explanation. No text.
+
+Example:
 {
- "amount": number,
- "date": "YYYY-MM-DD",
- "merchantName": "string",
- "category": "food|shopping|travel|other"
+  "amount": 250,
+  "date": "2026-04-27",
+  "merchantName": "Zomato",
+  "category": "food"
 }
 `;
 
@@ -270,24 +352,38 @@ Return JSON:
       ],
     });
 
-    const text =
-      result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    // ✅ safer way to read response
+    const text = result.response.text();
 
-    const data = JSON.parse(text.replace(/```json|```/g, "").trim());
+    console.log("🔥 RAW GEMINI:", text);
+
+    // clean markdown
+    const cleaned = text.replace(/```json|```/g, "").trim();
+
+    let data;
+
+    try {
+      data = JSON.parse(cleaned);
+    } catch (err) {
+      console.error("❌ JSON parse failed:", cleaned);
+      return {};
+    }
+
+    console.log("✅ PARSED DATA:", data);
 
     if (!data?.amount) return {};
 
     return {
       amount: Number(data.amount),
-      date: new Date(data.date),
+      date: data.date ? new Date(data.date) : new Date(),
       description: data.merchantName || "",
       merchantName: data.merchantName || "",
       category: data.category || "other",
     };
   } catch (e) {
-    console.log("Gemini failed → fallback");
+    console.error("❌ Gemini ERROR:", e);
 
-    // 🔥 fallback so UI fills
+    // fallback
     return {
       amount: 100,
       date: new Date(),
